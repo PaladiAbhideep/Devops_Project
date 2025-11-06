@@ -1,0 +1,98 @@
+jenkins:
+  systemMessage: "CI/CD Pipeline Dashboard - Jenkins Integration"
+  numExecutors: 2
+  mode: NORMAL
+  scmCheckoutRetryCount: 3
+  
+  securityRealm:
+    local:
+      allowsSignup: false
+      users:
+        - id: "admin"
+          password: "admin123"
+          name: "Administrator"
+          description: "Jenkins Administrator"
+
+  authorizationStrategy:
+    globalMatrix:
+      permissions:
+        - "Overall/Administer:admin"
+        - "Overall/Read:authenticated"
+
+  remotingSecurity:
+    enabled: true
+
+  crumbIssuer:
+    standard:
+      excludeClientIPFromCrumb: false
+
+unclassified:
+  location:
+    url: "http://localhost:8080/"
+    adminAddress: "admin@example.com"
+
+  globalLibraries:
+    libraries:
+      - name: "pipeline-library"
+        retriever:
+          modernSCM:
+            scm:
+              git:
+                remote: "https://github.com/jenkinsci/workflow-cps-global-lib-plugin.git"
+
+tool:
+  git:
+    installations:
+      - name: "Default"
+        home: "git"
+
+  nodejs:
+    installations:
+      - name: "NodeJS 20"
+        properties:
+          - installSource:
+              installers:
+                - nodeJSInstaller:
+                    id: "20.10.0"
+                    npmPackagesRefreshHours: 72
+
+jobs:
+  - script: |
+      folder('dashboard-pipelines') {
+        displayName('Dashboard Pipelines')
+        description('Pipelines monitored by the CI/CD Dashboard')
+      }
+  
+  - script: |
+      multibranchPipelineJob('dashboard-pipelines/github-webhook-demo') {
+        displayName('GitHub Webhook Demo')
+        description('Demo pipeline triggered by GitHub webhooks')
+        
+        branchSources {
+          git {
+            id('github-webhook-demo')
+            remote('https://github.com/your-username/your-repo.git')
+            credentialsId('')
+            traits {
+              gitBranchDiscovery()
+              gitTagDiscovery()
+            }
+          }
+        }
+        
+        orphanedItemStrategy {
+          discardOldItems {
+            numToKeep(10)
+          }
+        }
+        
+        triggers {
+          periodic(5) // Scan every 5 minutes
+        }
+        
+        factory {
+          workflowBranchProjectFactory {
+            scriptPath('Jenkinsfile')
+          }
+        }
+      }

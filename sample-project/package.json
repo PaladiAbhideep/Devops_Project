@@ -1,0 +1,16 @@
+{
+  "name": "sample-project",
+  "version": "1.0.0",
+  "description": "Sample project for CI/CD Dashboard testing",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "echo \"Running tests...\" && node test.js",
+    "build": "echo \"Building project...\" && mkdir -p dist && cp index.js dist/",
+    "lint": "echo \"Running linter...\" && echo \"No linting errors found\"",
+    "deploy": "echo \"Deploying to staging...\" && echo \"Deployment complete\""
+  },
+  "keywords": ["cicd", "jenkins", "dashboard"],
+  "author": "",
+  "license": "MIT"
+}
