@@ -100,13 +100,14 @@ pipeline {
                 
                 sh '''
                     echo "Running tests..."
-                    if grep -q "\\"test\\"" package.json 2>/dev/null; then
+                    if grep -q "\"test\"" package.json 2>/dev/null; then
                         npm test || echo "Tests failed but continuing..."
                     else
                         echo "No test script found, skipping..."
                     fi
                 '''
-                
+                junit allowEmptyResults: true, testResults: 'backend/test-results/junit.xml'
+                archiveArtifacts artifacts: 'backend/test-results/junit.xml', onlyIfSuccessful: true
                 script {
                     updateDashboardStep('Test', 'success')
                 }
