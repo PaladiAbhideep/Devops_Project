@@ -73,99 +73,71 @@ A full-stack real-time CI/CD pipeline monitoring dashboard that simulates pipeli
 - **PostgreSQL** - Database access
 
 ### Infrastructure
-- **Docker Compose** - Local orchestration
-- **PostgreSQL 15** - Database
-- **Redis 7** - In-memory cache and pub/sub
-- **Jenkins** - CI/CD automation server (LTS with JDK 17)
+- **PostgreSQL 15** - Relational database (Windows service)
+- **Redis 7 (Memurai)** - In-memory cache and pub/sub (Windows service)
+- **Jenkins LTS** - CI/CD automation server (with JDK 17)
+- **Windows Services** - Native Windows deployment
 
 ## 🛠️ Getting Started
 
 ### Prerequisites
-- **Docker** and **Docker Compose** installed
-- **Node.js 20+** (for local development without Docker)
-- **npm** or **yarn**
+- **Node.js 20+** installed
+- **Java JDK 17** (for Jenkins)
+- **PostgreSQL 15** installed
+- **Redis** (Memurai for Windows) installed
+- **Git** installed
 
-### Quick Start with Docker
+### 🚀 Quick Start (Windows - No Docker)
 
-1. **Clone the repository**
-```bash
+**Recommended Method:** Use Jenkins natively on Windows
+
+1. **Install Prerequisites**
+   - Node.js: https://nodejs.org/
+   - Java JDK 17: https://adoptium.net/
+   - PostgreSQL 15: https://www.postgresql.org/download/windows/
+   - Memurai (Redis): https://www.memurai.com/get-memurai
+
+2. **Setup Database**
+```powershell
+psql -U postgres
+CREATE DATABASE cicd_dashboard;
+\q
+
 cd "C:\Users\tests\Downloads\cicd project"
+psql -U postgres -d cicd_dashboard -f setup-database.sql
 ```
 
-2. **Start all services**
+3. **Start All Services**
 ```powershell
-docker-compose up -d
+.\START-WINDOWS.ps1
 ```
 
-3. **Access the application**
-- Frontend: http://localhost:3000
-- Backend API: http://localhost:4000
-- **Jenkins**: http://localhost:8080 (admin/admin123)
-- Health Check: http://localhost:4000/health
-
-4. **View logs**
+4. **Start Jenkins**
 ```powershell
-# All services
-docker-compose logs -f
-
-# Specific service
-docker-compose logs -f backend
-docker-compose logs -f worker
-docker-compose logs -f frontend
+cd C:\Jenkins
+java -jar jenkins.war --httpPort=8080
 ```
 
-5. **Stop services**
-```powershell
-docker-compose down
-```
+6. **Verify Services**
+   - Dashboard: http://localhost:3000
+   - Backend API: http://localhost:4000/health
+   - Jenkins: http://localhost:8080
 
-6. **Clean up (remove volumes)**
-```powershell
-docker-compose down -v
-```
+### 📚 Detailed Setup Guides
 
-### Local Development (Without Docker)
+- **Jenkins without Docker**: [JENKINS-NO-DOCKER.md](JENKINS-NO-DOCKER.md) ⭐ **RECOMMENDED**
+- **Windows Setup**: [SETUP-WINDOWS-NO-DOCKER.md](SETUP-WINDOWS-NO-DOCKER.md)
+- **Quick Start**: [QUICKSTART-WINDOWS.md](QUICKSTART-WINDOWS.md)
+- **GitHub Integration**: [SETUP-JENKINS-GITHUB.md](SETUP-JENKINS-GITHUB.md)
+- **Push to GitHub**: [GITHUB-PUSH-GUIDE.md](GITHUB-PUSH-GUIDE.md)
 
-#### 1. Setup PostgreSQL
-```powershell
-# Install PostgreSQL or use Docker
-docker run -d --name cicd-postgres -e POSTGRES_PASSWORD=postgres -p 5432:5432 postgres:15
+### 🎮 Using the Dashboard
 
-# Run schema
-psql -U postgres -h localhost < infra/init.sql
-```
-
-#### 2. Setup Redis
-```powershell
-docker run -d --name cicd-redis -p 6379:6379 redis:7-alpine
-```
-
-#### 3. Backend
-```powershell
-cd backend
-npm install
-cp .env.example .env
-# Edit .env if needed
-npm run dev
-```
-
-#### 4. Worker
-```powershell
-cd worker
-npm install
-cp .env.example .env
-# Edit .env if needed
-npm run dev
-```
-
-#### 5. Frontend
-```powershell
-cd frontend
-npm install
-cp .env.example .env
-# Edit .env if needed
-npm run dev
-```
+1. **Open Dashboard**: http://localhost:3000
+2. **View Pipelines**: See all configured pipelines
+3. **Trigger Run**: Click "Trigger Run" or use Jenkins
+4. **Watch Real-time**: See logs stream live
+5. **View History**: Browse all pipeline runs
 
 ## 📁 Project Structure
 
@@ -412,45 +384,63 @@ docker-compose logs -f worker
 
 ## 🔧 Troubleshooting
 
-### Services won't start
+### Services Won't Start
 ```powershell
-# Check service status
-docker-compose ps
+# Check PostgreSQL service
+Get-Service postgresql*
+Start-Service postgresql-x64-15
 
-# View logs for errors
-docker-compose logs
-
-# Restart services
-docker-compose restart
+# Check Redis/Memurai
+Get-Service Memurai
+Start-Service Memurai
 ```
 
 ### Database connection issues
 ```powershell
-# Check if PostgreSQL is ready
-docker-compose exec db pg_isready -U postgres
+# Test PostgreSQL connection
+psql -U postgres -d cicd_dashboard -c "SELECT 1;"
 
-# Manually connect to database
-docker-compose exec db psql -U postgres -d cicd_dashboard
+# Check if database exists
+psql -U postgres -l | findstr cicd_dashboard
 ```
 
 ### Redis connection issues
 ```powershell
-# Test Redis connection
-docker-compose exec redis redis-cli ping
+# Check if Memurai is running
+Get-Service Memurai
+
+# Test connection
+redis-cli ping  # if redis-cli is installed
 ```
 
 ### Frontend can't connect to backend
-- Verify `VITE_API_URL` and `VITE_WS_URL` in frontend/.env
+- Verify `VITE_API_URL` in frontend/.env is `http://localhost:4000`
 - Check if backend is running: `curl http://localhost:4000/health`
-- Check browser console for CORS errors
+- Check browser console for errors
 
 ### Worker not processing jobs
 ```powershell
-# Check worker logs
-docker-compose logs -f worker
+# Check worker logs in its terminal window
+# Verify Redis is running
+Get-Service Memurai
+```
 
-# Verify Redis queue
-docker-compose exec redis redis-cli LLEN run-queue
+### Port Already in Use
+```powershell
+# Find process using port 4000 (backend)
+Get-NetTCPConnection -LocalPort 4000
+
+# Kill the process
+Stop-Process -Id <PID> -Force
+```
+
+### Jenkins Won't Start
+```powershell
+# Check Java version
+java -version
+
+# Run with more memory
+java -Xmx2g -jar C:\Jenkins\jenkins.war --httpPort=8080
 ```
 
 ## 🛣️ Roadmap
